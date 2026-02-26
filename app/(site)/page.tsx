@@ -9,40 +9,57 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero section */}
-      <div className="bg-white bg-grid-pattern m-[70px] h-[500px] rounded-[20px] flex items-center p-8 relative overflow-hidden shadow-lg">
-        <div className="w-[50%] text-gray-900 z-10">
-          <h1 className="text-5xl font-black">
+      <div className="bg-white bg-grid-pattern mx-4 my-6 md:m-[70px] rounded-[20px] flex flex-col md:flex-row md:items-center md:h-[500px] relative overflow-hidden shadow-lg">
+        {/* Text block */}
+        <div className="w-full md:w-[50%] text-gray-900 z-10 p-6 md:p-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black">
             ¿Nunca has practicado <br /> un deporte de contacto?
           </h1>
 
-          <div className="text-4xl font-black mt-1 h-[50px]">
+          <div className="text-2xl sm:text-3xl md:text-4xl font-black mt-1 h-[44px] md:h-[50px]">
             <TypingText
               texts={["Empieza aquí!", "Bienvenido!"]}
               typingSpeed={100}
               deletingSpeed={50}
               pauseTime={1200}
-              className="text-4xl font-black text-gray-500"
+              className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-500"
             />
           </div>
 
-          <p className="text-gray-700 mt-4 max-w-md">
+          <p className="text-gray-700 mt-4 max-w-md text-sm md:text-base">
             No necesitas experiencia previa, solo ganas de entrenar. Te guío
             paso a paso desde cero en jiujitsu, defensa personal y artes
             marciales.
           </p>
 
-          <div className="flex gap-4 mt-4">
-            <button className="bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-[12px] transition-colors">
+          <div className="flex flex-wrap gap-3 mt-4">
+            <button className="bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-[12px] transition-colors text-sm md:text-base">
               Ver cursos
             </button>
-            <button className="bg-transparent hover:bg-gray-900 text-gray-900 font-semibold hover:text-white py-2 px-4 border border-gray-900 hover:border-transparent rounded-[12px] transition-all">
+            <button className="bg-transparent hover:bg-gray-900 text-gray-900 font-semibold hover:text-white py-2 px-4 border border-gray-900 hover:border-transparent rounded-[12px] transition-all text-sm md:text-base">
               Unirme a la academia
             </button>
           </div>
         </div>
 
-        <div className="absolute right-0 top-0 h-full w-[55%] select-none">
-          <div className="relative w-full h-full" style={{ clipPath: "polygon(20% 0, 100% 0, 100% 100%, 0% 100%)" }}>
+        {/* Image block — mobile: relative below text with top-angled clip; desktop: absolute right overlay */}
+        <div className="relative w-full h-[260px] sm:h-[300px] md:absolute md:right-0 md:top-0 md:h-full md:w-[55%] select-none flex-shrink-0">
+          <div
+            className="relative w-full h-full"
+            style={{
+              clipPath: "var(--hero-clip)",
+            }}
+          >
+            <style>{`
+              :root {
+                --hero-clip: polygon(8% 0, 100% 0, 100% 100%, 0% 100%);
+              }
+              @media (max-width: 767px) {
+                :root {
+                  --hero-clip: polygon(0 12%, 100% 0, 100% 100%, 0% 100%);
+                }
+              }
+            `}</style>
             <Image
               src="/hero-fist.jpg"
               alt="banner con manos en el aire"
@@ -50,7 +67,6 @@ export default function Home() {
               className="object-cover"
               priority
             />
-            {/* Overlay sutil para mejorar contraste si fuera necesario, opcional */}
             <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/5 pointer-events-none" />
           </div>
         </div>

@@ -34,22 +34,22 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   ];
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-gray-900">
+    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-gray-900">
       <PromoBanner />
       
       {/* Mobile Topbar */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-gray-900 text-white border-b border-gray-700 sticky top-0 z-30">
-        <span className="text-xl font-bold">Zona Elite</span>
+      <div className="md:hidden flex items-center justify-between p-4 bg-gray-900 text-white border-b border-gray-700 sticky top-0 z-30 overflow-hidden min-w-0 w-full">
+        <span className="text-xl font-bold truncate">Zona Elite</span>
         <button 
           onClick={() => setOpen(true)} 
-          className="p-2 rounded hover:bg-gray-800 transition-colors"
+          className="p-2 rounded hover:bg-gray-800 transition-colors flex-shrink-0"
           aria-label="Open menu"
         >
           <IconMenu2 size={24} />
         </button>
       </div>
       
-      <div className="flex flex-1 w-full relative">
+      <div className="flex flex-1 w-full min-w-0 overflow-x-hidden relative">
         {/* Overlay for mobile */}
         {open && (
           <div 
@@ -62,7 +62,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         {/* Sidebar */}
         <aside 
           className={`
-            fixed inset-y-0 left-0 z-50 h-screen bg-gray-900 text-white transition-all duration-300 flex flex-col overflow-hidden border-r border-gray-700
+            fixed left-0 top-0 z-50 h-full min-h-screen bg-gray-900 text-white transition-all duration-300 flex flex-col overflow-hidden border-r border-gray-700
             ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
             md:translate-x-0 md:static md:sticky md:top-0 md:shadow-none
             ${open ? "md:w-64" : "md:w-20"}
@@ -100,7 +100,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* Main */}
-        <main className={`flex-1 transition-all duration-300 ease-in-out bg-gray-900`}>
+        <main className={`flex-1 min-w-0 overflow-x-hidden transition-all duration-300 ease-in-out bg-gray-900`}>
           {children}
         </main>
       </div>
