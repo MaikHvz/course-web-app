@@ -3,6 +3,8 @@
 import Image from "next/image";
 import TypingText from "@/components/TypingText";
 import BrandsMarquee from "@/components/BrandsMarquee";
+import FeaturedCourses from "@/components/FeaturedCourses";
+import FeaturedCourseHero from "@/components/FeaturedCourseHero";
 import { IconArrowRight } from "@tabler/icons-react";
 
 export default function Home() {
@@ -72,6 +74,8 @@ export default function Home() {
         </div>
       </div>
 
+      <FeaturedCourseHero />
+
       {/* Cards section */}
       <div className="flex flex-wrap px-[70px] gap-4 justify-center">
         <div className="flex flex-wrap justify-center items-center">
@@ -134,13 +138,9 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <div className="w-full mt-[40px] bg-white h-[500px] flex ">
-        <main className="flex flex-col mx-[90px] mt-[40px] h-[400px] rounded-[20px] bg-grid-pattern">
-          <h2 className="text-2xl text-gray-900 font-semibold">Aprende Aplicando</h2>
-          <p className="text-[16px] text-gray-900">Accede a <span className="font-normal underline cursor-pointer hover:text-blue-600">Cursos online de deportes de contacto y defensa personal</span>. Aprende de expertos y domina técnicas clave desde cualquier lugar.</p>
-          
-        </main>
-      </div>
+
+
+      <FeaturedCourses />
 
     </div>
   );
