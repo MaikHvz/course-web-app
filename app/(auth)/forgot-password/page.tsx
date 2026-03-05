@@ -53,6 +53,7 @@ export default function ForgotPasswordPage() {
           <input 
             type="email" 
             required
+            maxLength={255}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

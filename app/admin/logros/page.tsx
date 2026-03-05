@@ -280,6 +280,7 @@ export default function AdminAchievementsPage() {
                     <input 
                       type="text" 
                       required
+                      maxLength={100}
                       value={formData.title}
                       onChange={(e) => setFormData({...formData, title: e.target.value})}
                       placeholder="Ej: Primer Paso"
@@ -290,6 +291,7 @@ export default function AdminAchievementsPage() {
                     <label className="block text-sm font-medium text-gray-400 mb-1.5">Descripción</label>
                     <textarea 
                       rows={3}
+                      maxLength={500}
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                       placeholder="Explica cómo se obtiene este logro..."
@@ -393,6 +395,7 @@ export default function AdminAchievementsPage() {
                           <input 
                             type="number" 
                             min={1}
+                            step="1"
                             value={formData.condition_value}
                             onChange={(e) => setFormData({...formData, condition_value: parseInt(e.target.value) || 1})}
                             className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-2xl font-black text-blue-400 focus:border-blue-500 outline-none"

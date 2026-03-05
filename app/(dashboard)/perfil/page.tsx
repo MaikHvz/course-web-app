@@ -127,6 +127,7 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     value={newName}
+                    maxLength={100}
                     onChange={(e) => setNewName(e.target.value)}
                     className="flex-1 text-white bg-gray-950 px-4 py-3 rounded-lg border border-gray-800 focus:border-blue-500 outline-none transition-colors"
                   />
@@ -159,6 +160,8 @@ export default function ProfilePage() {
                 <input 
                    type="password" 
                    value={newPassword}
+                   minLength={8}
+                   maxLength={128}
                    onChange={(e) => setNewPassword(e.target.value)}
                    className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none"
                    required

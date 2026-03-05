@@ -97,6 +97,7 @@ export default function AdminUsersPage() {
           <input 
             type="text" 
             placeholder="Buscar por nombre o email..."
+            maxLength={100}
             className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2 pl-10 pr-4 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500"
           />
           <IconSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
