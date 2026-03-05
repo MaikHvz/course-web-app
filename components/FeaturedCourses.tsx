@@ -20,7 +20,6 @@ export default function FeaturedCourses() {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('is_published', true)
         .order('order_index', { ascending: true });
       
       if (!error && data) {

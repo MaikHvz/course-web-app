@@ -1,6 +1,6 @@
 "use client";
 
-import { IconPlayerPlayFilled } from "@tabler/icons-react";
+const BUNNY_LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
 
 interface VideoPlayerProps {
   videoId: string;
@@ -8,19 +8,34 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
-  return (
-    <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl group">
-      
-      {/* Placeholder overlay before play (in a real scenario, Bunny player handles this) */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-        <button className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white mb-4 hover:bg-blue-500 hover:scale-110 transition-all shadow-[0_0_30px_rgba(37,99,235,0.5)]">
-          <IconPlayerPlayFilled size={24} className="ml-1" />
-        </button>
-        <p className="text-gray-400 text-sm font-mono bg-gray-900/80 px-3 py-1 rounded">
-          [Bunny Stream MOCK: {videoId}]
+  if (!videoId) {
+    return (
+      <div className="w-full aspect-video bg-gray-900 rounded-2xl border border-gray-800 flex items-center justify-center">
+        <p className="text-gray-500 text-sm">Video no disponible</p>
+      </div>
+    );
+  }
+
+  if (!BUNNY_LIBRARY_ID) {
+    return (
+      <div className="w-full aspect-video bg-gray-900 rounded-2xl border border-red-900/40 flex items-center justify-center p-4 text-center">
+        <p className="text-red-400 text-sm">
+          Falta configurar <code className="bg-red-900/30 px-1 rounded">NEXT_PUBLIC_BUNNY_LIBRARY_ID</code> en .env.local
         </p>
       </div>
+    );
+  }
 
+  return (
+    <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden border border-gray-800 shadow-2xl">
+      <iframe
+        src={`https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${videoId}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`}
+        title={title || "Video del curso"}
+        loading="lazy"
+        className="w-full h-full"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+        allowFullScreen
+      />
     </div>
   );
 }

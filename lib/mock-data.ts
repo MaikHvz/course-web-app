@@ -13,6 +13,7 @@ export const mockCourses: Course[] = [
         is_free: false,
         included_in_subscription: true,
         is_published: true,
+        featured: false,
         category: "Jiu-Jitsu",
         order_index: 1,
         created_at: new Date().toISOString(),
@@ -30,6 +31,7 @@ export const mockCourses: Course[] = [
         is_free: true,
         included_in_subscription: true,
         is_published: true,
+        featured: false,
         category: "MMA",
         order_index: 2,
         created_at: new Date().toISOString(),
@@ -47,6 +49,7 @@ export const mockCourses: Course[] = [
         is_free: false,
         included_in_subscription: true,
         is_published: true,
+        featured: false,
         category: "Kempo Karate",
         order_index: 3,
         created_at: new Date().toISOString(),
@@ -62,8 +65,9 @@ export const mockCourses: Course[] = [
         thumbnail_url: "/hero-fist.jpg",
         price: 99.99,
         is_free: false,
-        included_in_subscription: false, // NOT in standard sub
+        included_in_subscription: false,
         is_published: true,
+        featured: true,
         category: "Defensa Personal",
         order_index: 4,
         created_at: new Date().toISOString(),
@@ -119,6 +123,7 @@ export const mockAchievements: Achievement[] = [
         icon_url: "🎯",
         condition_type: "start_course",
         condition_value: 1,
+        hex_color: "#3b82f6",
         created_at: new Date().toISOString()
     },
     {
@@ -128,6 +133,7 @@ export const mockAchievements: Achievement[] = [
         icon_url: "⚔️",
         condition_type: "complete_courses",
         condition_value: 5,
+        hex_color: "#f59e0b",
         created_at: new Date().toISOString()
     }
 ];

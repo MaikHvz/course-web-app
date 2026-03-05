@@ -18,7 +18,6 @@ export default function FeaturedCourseHero() {
         .from("courses")
         .select("*")
         .eq("featured", true)
-        .eq("is_published", true)
         .maybeSingle();
 
       if (!error && data) {
