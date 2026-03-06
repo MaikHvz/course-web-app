@@ -6,34 +6,48 @@ import CourseCard from "./CourseCard";
 import { IconLoader2 } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const CATEGORIES = ["Todos", "MMA", "Jiu-Jitsu", "Kempo Karate", "Defensa Personal"];
+import { Category, Course } from "@/lib/types";
 
 export default function FeaturedCourses() {
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("Todos");
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .order('order_index', { ascending: true });
       
-      if (!error && data) {
-        setCourses(data);
+      // Fetch both courses and categories
+      const [coursesRes, categoriesRes] = await Promise.all([
+        supabase
+          .from('courses')
+          .select('*, category:categories(*)')
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('categories')
+          .select('*')
+          .order('name', { ascending: true })
+      ]);
+      
+      if (!coursesRes.error && coursesRes.data) {
+        setCourses(coursesRes.data);
       }
+      
+      if (!categoriesRes.error && categoriesRes.data) {
+        setCategories(categoriesRes.data);
+      }
+
       setIsLoading(false);
     };
 
-    fetchCourses();
+    fetchData();
   }, [supabase]);
 
   // Filter courses based on active category
   const filteredCourses = courses.filter(course => 
-    activeCategory === "Todos" || course.category === activeCategory
+    activeCategoryId === "all" || course.category_id === activeCategoryId
   );
 
   return (
@@ -60,17 +74,27 @@ export default function FeaturedCourses() {
 
         {/* Category Filters */}
         <div className="flex overflow-x-auto pb-4 mb-6 gap-3 no-scrollbar">
-          {CATEGORIES.map(category => (
+          <button
+            onClick={() => setActiveCategoryId("all")}
+            className={`whitespace-nowrap px-5 py-2.5 rounded-full font-medium transition-all ${
+              activeCategoryId === "all" 
+                ? "bg-gray-900 text-white shadow-md" 
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+            }`}
+          >
+            Todos
+          </button>
+          {categories.map(category => (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
+              key={category.id}
+              onClick={() => setActiveCategoryId(category.id)}
               className={`whitespace-nowrap px-5 py-2.5 rounded-full font-medium transition-all ${
-                activeCategory === category 
+                activeCategoryId === category.id 
                   ? "bg-gray-900 text-white shadow-md" 
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
               }`}
             >
-              {category}
+              {category.name}
             </button>
           ))}
         </div>

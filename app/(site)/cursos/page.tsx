@@ -4,30 +4,46 @@ import CourseCard from "@/components/CourseCard";
 import { IconSearch, IconLoader2 } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type FilterType = "Todos" | "Gratis" | "Individual" | "Suscripción";
+import { Course, Category } from "@/lib/types";
+
+type ProductTypeFilter = "Todos" | "Gratis" | "Individual" | "Suscripción";
 
 export default function CatalogPage() {
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>("Todos");
+  const [productType, setProductType] = useState<ProductTypeFilter>("Todos");
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .order('order_index', { ascending: true });
       
-      if (!error && data) {
-        setCourses(data);
+      const [coursesRes, categoriesRes] = await Promise.all([
+        supabase
+          .from('courses')
+          .select('*, category:categories(*)')
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('categories')
+          .select('*')
+          .order('name', { ascending: true })
+      ]);
+      
+      if (!coursesRes.error && coursesRes.data) {
+        setCourses(coursesRes.data);
       }
+      
+      if (!categoriesRes.error && categoriesRes.data) {
+        setCategories(categoriesRes.data);
+      }
+
       setIsLoading(false);
     };
 
-    fetchCourses();
+    fetchData();
   }, [supabase]);
 
   const filteredCourses = courses.filter(course => {
@@ -35,13 +51,16 @@ export default function CatalogPage() {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           course.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Filter match
-    let matchesFilter = true;
-    if (filter === "Gratis") matchesFilter = course.is_free;
-    if (filter === "Individual") matchesFilter = !course.is_free;
-    if (filter === "Suscripción") matchesFilter = course.included_in_subscription;
+    // Product type filter match
+    let matchesType = true;
+    if (productType === "Gratis") matchesType = course.is_free;
+    if (productType === "Individual") matchesType = !course.is_free;
+    if (productType === "Suscripción") matchesType = course.included_in_subscription;
 
-    return matchesSearch && matchesFilter;
+    // Category filter match
+    const matchesCategory = activeCategoryId === "all" || course.category_id === activeCategoryId;
+
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   return (
@@ -60,17 +79,43 @@ export default function CatalogPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           
           <div className="flex flex-wrap gap-2 justify-center md:justify-start w-full md:w-auto">
-            {(["Todos", "Gratis", "Individual", "Suscripción"] as FilterType[]).map(f => (
+            {(["Todos", "Gratis", "Individual", "Suscripción"] as ProductTypeFilter[]).map(f => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => setProductType(f)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  filter === f 
+                  productType === f 
                     ? "bg-blue-600 text-white" 
                     : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                 }`}
               >
                 {f}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2 justify-center md:justify-start w-full md:w-auto">
+            <button
+              onClick={() => setActiveCategoryId("all")}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeCategoryId === "all" 
+                  ? "bg-blue-600 text-white" 
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              Todas las Categorías
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategoryId(cat.id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  activeCategoryId === cat.id 
+                    ? "bg-blue-600 text-white" 
+                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                {cat.name}
               </button>
             ))}
           </div>
@@ -105,7 +150,7 @@ export default function CatalogPage() {
           ) : (
             <div className="col-span-full py-20 text-center text-gray-500 bg-gray-800/50 rounded-[20px] w-full mt-4">
               <p className="text-xl">No se encontraron cursos con estos filtros.</p>
-              <button onClick={() => { setFilter("Todos"); setSearchQuery(""); }} className="mt-4 text-blue-400 hover:underline">
+              <button onClick={() => { setProductType("Todos"); setActiveCategoryId("all"); setSearchQuery(""); }} className="mt-4 text-blue-400 hover:underline">
                 Limpiar filtros
               </button>
             </div>

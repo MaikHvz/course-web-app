@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/mis-cursos";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +22,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg("");
     
-    const { error, data } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -30,10 +33,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect logic: evaluate role from profiles if necessary, 
-    // or just send to dashboard and let middleware redirect.
-    router.push("/mis-cursos");
-    router.refresh(); // Important to refresh Server Components with new cookies
+    // Redirect to the provided path or default dashboard
+    router.push(redirectTo);
+    router.refresh(); 
   };
 
   const handleGoogleLogin = async () => {

@@ -13,6 +13,12 @@ export interface Profile {
     created_at: string;
 }
 
+export interface Category {
+    id: string;
+    name: string;
+    created_at: string;
+}
+
 export interface Course {
     id: string;
     title: string;
@@ -25,7 +31,8 @@ export interface Course {
     is_free: boolean;
     included_in_subscription: boolean;
     is_published: boolean;
-    category: "MMA" | "Jiu-Jitsu" | "Kempo Karate" | "Defensa Personal"; // Added for UI filtering
+    category_id: string | null;
+    category?: Category; // For joined queries
     order_index: number;
     featured: boolean;
     created_at: string;

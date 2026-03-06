@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +42,7 @@ export default function RegisterPage() {
         data: {
           name: name,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ""}`,
       },
     });
 
@@ -49,7 +52,7 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/verify-email");
+    router.push(`/verify-email${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`);
   };
 
   const handleGoogleLogin = async () => {

@@ -67,6 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { label: "Dashboard", href: "/admin", icon: <IconLayoutDashboard size={20} />, exact: true },
     { label: "Cursos", href: "/admin/cursos", icon: <IconVideo size={20} /> },
+    { label: "Categorías", href: "/admin/categorias", icon: <IconTags size={20} /> },
     { label: "Rutas", href: "/admin/rutas", icon: <IconRoute size={20} /> },
     { label: "Suscripciones", href: "/admin/suscripciones", icon: <IconCalendarStar size={20} /> },
     { label: "Descuentos", href: "/admin/descuentos", icon: <IconTags size={20} /> },

@@ -33,7 +33,7 @@ export default function CourseCard({ course, hidePrice = false }: CourseCardProp
       <div className="flex flex-col flex-1 p-5 justify-between bg-gray-800 text-white">
         <div>
           <h3 className="text-xl font-bold line-clamp-2 leading-tight">{course.title}</h3>
-          <p className="text-sm text-gray-400 mt-1">{course.category}</p>
+          <p className="text-sm text-gray-400 mt-1">{course.category?.name || "Sin categoría"}</p>
         </div>
         
         <div className="flex items-center justify-between mt-4">

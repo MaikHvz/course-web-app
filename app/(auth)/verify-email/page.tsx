@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { IconMailFast } from "@tabler/icons-react";
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
+  const { redirect } = await searchParams;
+
   return (
     <div className="text-center py-6">
       <div className="w-16 h-16 bg-blue-900/50 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -15,7 +21,7 @@ export default function VerifyEmailPage() {
       
       <div className="space-y-4">
         <Link 
-          href="/login" 
+          href={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} 
           className="w-full inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition-colors"
         >
           Ya lo verifiqué, ir a Login

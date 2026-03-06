@@ -4,7 +4,9 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { Course } from "@/lib/types";
+import { Course, Category } from "@/lib/types";
+import { useEffect } from "react";
+import Link from "next/link";
 import {
   IconUpload,
   IconVideo,
@@ -15,10 +17,6 @@ import {
   IconPhoto,
   IconAlertTriangle,
 } from "@tabler/icons-react";
-
-type CourseCategory = "MMA" | "Jiu-Jitsu" | "Kempo Karate" | "Defensa Personal";
-
-const CATEGORIES: CourseCategory[] = ["MMA", "Jiu-Jitsu", "Kempo Karate", "Defensa Personal"];
 
 const BUNNY_LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
 
@@ -49,13 +47,16 @@ interface FormState {
   included_in_subscription: boolean;
   is_published: boolean;
   featured: boolean;
-  category: CourseCategory;
+  category_id: string;
   order_index: string;
 }
 
 export default function CourseForm({ initialData, mode }: CourseFormProps) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   const [form, setForm] = useState<FormState>({
     title: initialData?.title || "",
@@ -69,9 +70,29 @@ export default function CourseForm({ initialData, mode }: CourseFormProps) {
     included_in_subscription: initialData?.included_in_subscription ?? false,
     is_published: initialData?.is_published ?? false,
     featured: initialData?.featured ?? false,
-    category: (initialData?.category as CourseCategory) || "MMA",
+    category_id: initialData?.category_id || "",
     order_index: initialData?.order_index?.toString() || "0",
   });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+      
+      if (!error && data) {
+        setCategories(data);
+        // If create mode and no category selected, select the first one
+        if (mode === "create" && !form.category_id && data.length > 0) {
+          setForm(prev => ({ ...prev, category_id: data[0].id }));
+        }
+      }
+      setIsLoadingCategories(false);
+    };
+
+    fetchCategories();
+  }, [supabase, mode]);
 
   // Video state
   const [videoMode, setVideoMode] = useState<"id" | "upload">("id");
@@ -186,7 +207,7 @@ export default function CourseForm({ initialData, mode }: CourseFormProps) {
 
     if (!form.title.trim()) { setErrorMsg("El título es requerido."); return; }
     if (!form.slug.trim()) { setErrorMsg("El slug es requerido."); return; }
-    if (!form.category) { setErrorMsg("La categoría es requerida."); return; }
+    if (!form.category_id) { setErrorMsg("La categoría es requerida."); return; }
     if (!form.is_free && parseFloat(form.price) < 0) {
       setErrorMsg("El precio no puede ser negativo."); return;
     }
@@ -227,7 +248,7 @@ export default function CourseForm({ initialData, mode }: CourseFormProps) {
       included_in_subscription: form.included_in_subscription,
       is_published: form.is_published,
       featured: form.featured,
-      category: form.category,
+      category_id: form.category_id,
       order_index: parseInt(form.order_index) || 0,
       updated_at: new Date().toISOString(),
     };
@@ -515,16 +536,28 @@ export default function CourseForm({ initialData, mode }: CourseFormProps) {
               <label className="block text-sm font-medium text-gray-400 mb-1.5">
                 Categoría <span className="text-red-500">*</span>
               </label>
-              <select
-                required
-                value={form.category}
-                onChange={(e) => handleFieldChange("category", e.target.value as CourseCategory)}
-                className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+              {isLoadingCategories ? (
+                <div className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-2 text-gray-500 text-sm">
+                  <IconLoader2 size={16} className="animate-spin" />
+                  Cargando categorías...
+                </div>
+              ) : categories.length > 0 ? (
+                <select
+                  required
+                  value={form.category_id}
+                  onChange={(e) => handleFieldChange("category_id", e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors"
+                >
+                  <option value="" disabled>Seleccionar categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-xs">
+                  No hay categorías disponibles. <Link href="/admin/categorias/nuevo" className="underline font-bold">Crea una aquí</Link>.
+                </div>
+              )}
             </div>
 
             <div>

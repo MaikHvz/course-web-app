@@ -35,6 +35,15 @@ export default function PurchaseButton({
         body: JSON.stringify({ courseId }),
       });
 
+      // Handle Unauthorized (Not Logged In)
+      if (res.status === 401) {
+        console.log("User unauthorized, redirecting to login...");
+        setIsLoading(false);
+        const currentPath = window.location.pathname;
+        router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+        return;
+      }
+
       const data = await res.json();
       console.log("Purchase API Response:", data);
 
