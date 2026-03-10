@@ -28,7 +28,7 @@ export default function AdminCoursesPage() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from("courses")
-      .select("*")
+      .select("*, category:categories(*)")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -113,7 +113,7 @@ export default function AdminCoursesPage() {
           )}
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-white truncate">{course.title}</span>
-            <span className="text-xs text-gray-500">{course.category}</span>
+            <span className="text-xs text-gray-500">{course.category?.name || "Sin categoría"}</span>
           </div>
         </div>
       ),

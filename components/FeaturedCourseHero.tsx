@@ -16,7 +16,7 @@ export default function FeaturedCourseHero() {
     const fetchFeatured = async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("*")
+        .select("*, category:categories(*)")
         .eq("featured", true)
         .maybeSingle();
 
@@ -54,7 +54,7 @@ export default function FeaturedCourseHero() {
               <span>Curso Destacado</span>
             </div>
             <span className="text-gray-400 text-xs font-bold uppercase tracking-widest bg-white/5 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-              {featuredCourse.category}
+              {featuredCourse.category?.name || "Sin categoría"}
             </span>
           </div>
 
