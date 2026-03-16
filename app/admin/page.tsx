@@ -32,11 +32,11 @@ export default function AdminDashboardPage() {
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('courses').select('*', { count: 'exact', head: true }).eq('is_published', true),
-        supabase.from('purchases').select('amount').eq('status', 'paid'),
+        supabase.from('purchases').select('amount_paid').eq('status', 'paid'),
         supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active')
       ]);
 
-      const totalRevenue = purchaseData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+      const totalRevenue = purchaseData?.reduce((acc, curr) => acc + (Number(curr.amount_paid) || 0), 0) || 0;
 
       setStats({
         revenue: totalRevenue,
@@ -50,13 +50,14 @@ export default function AdminDashboardPage() {
         .from('purchases')
         .select(`
           id,
-          amount,
+          amount_paid,
           created_at,
           profiles (name),
           courses (title)
         `)
+        .eq('status', 'paid')
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
       
       if (activity) {
         setRecentActivity(activity.map(a => ({
@@ -64,18 +65,44 @@ export default function AdminDashboardPage() {
           user: (a.profiles as any)?.name || 'Anónimo',
           action: `Compró ${(a.courses as any)?.title || 'Curso'}`,
           date: new Date(a.created_at).toLocaleDateString(),
-          amount: `$${a.amount}`
+          amount: `$${a.amount_paid}`
         })));
       }
 
-      // 3. Top Courses (Simple mock-like for now until we have aggregation)
-      const { data: popularCourses } = await supabase
-        .from('courses')
-        .select('id, title, category')
-        .eq('is_published', true)
-        .limit(3);
+      // 3. Top Courses Aggregation (Agrupar todas las compras por curso)
+      const { data: allPaid } = await supabase
+        .from('purchases')
+        .select(`
+          amount_paid,
+          courses (id, title)
+        `)
+        .eq('status', 'paid');
+        
+      const courseStats = new Map();
       
-      setTopCourses(popularCourses || []);
+      if (allPaid) {
+        allPaid.forEach((p: any) => {
+          if (!p.courses) return;
+          const cid = p.courses.id;
+          if (!courseStats.has(cid)) {
+            courseStats.set(cid, {
+              id: cid,
+              title: p.courses.title,
+              salesCount: 0,
+              revenue: 0
+            });
+          }
+          const st = courseStats.get(cid);
+          st.salesCount += 1;
+          st.revenue += (Number(p.amount_paid) || 0);
+        });
+      }
+
+      const popularCourses = Array.from(courseStats.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+      
+      setTopCourses(popularCourses);
       
       setIsLoading(false);
     };
@@ -137,7 +164,16 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-xl font-bold text-white">Actividad Reciente</h2>
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Actividad Reciente</h2>
+                  <p className="text-sm text-gray-500 mt-1">Últimas 10 compras realizadas en la plataforma.</p>
+                </div>
+                <div className="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl text-right">
+                  <p className="text-xs text-gray-500 font-medium">Ventas Históricas</p>
+                  <p className="text-emerald-400 font-bold text-lg">${stats.revenue.toLocaleString()}</p>
+                </div>
+              </div>
               <DataTable columns={columns} data={recentActivity} />
             </div>
 
@@ -151,7 +187,10 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-white truncate text-sm">{c.title}</p>
-                      <p className="text-xs text-gray-500">{c.category}</p>
+                      <p className="text-xs text-gray-500">{c.salesCount} {c.salesCount === 1 ? 'venta' : 'ventas'}</p>
+                    </div>
+                    <div className="text-right whitespace-nowrap">
+                      <p className="text-sm font-bold text-emerald-400">${c.revenue.toLocaleString()}</p>
                     </div>
                   </div>
                 )) : (

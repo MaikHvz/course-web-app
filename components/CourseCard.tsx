@@ -14,7 +14,7 @@ export default function CourseCard({ course, hidePrice = false }: CourseCardProp
     <Link href={`/cursos/${course.slug}`} className="group flex flex-col min-w-[200px] w-full max-w-[400px] h-[350px] rounded-[20px] overflow-hidden relative shadow-md bg-gray-800 transition-all hover:-translate-y-1 hover:shadow-xl">
       <div className="relative w-full h-[60%] bg-gray-900">
         <Image
-          src={course.thumbnail_url}
+          src={course.thumbnail_url || "https://placehold.co/600x400/0f172a/white.png?text=Zona+Elite"}
           alt={course.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"

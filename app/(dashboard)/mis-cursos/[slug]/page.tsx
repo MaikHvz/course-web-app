@@ -14,17 +14,39 @@ import {
 } from "@tabler/icons-react";
 import { Course, Purchase, Subscription } from "@/lib/types";
 
-// Helper checking access
-function canUserAccessCourse(course: Course, activeSubs: Subscription[], purchases: Purchase[]): boolean {
+/**
+ * Verifica si un usuario tiene acceso a un curso.
+ * 
+ * Reglas de acceso (en orden de prioridad):
+ * 1. El curso es gratuito → acceso inmediato
+ * 2. El usuario compró el curso directamente (purchases con status paid/gifted)
+ * 3. El usuario tiene una suscripción LIFETIME activa → acceso a TODO
+ * 4. El usuario tiene una suscripción STANDARD activa que incluye este curso
+ *    (verificado a través de subscription_plan_courses)
+ */
+function canUserAccessCourse(
+  course: Course,
+  purchases: Purchase[],
+  activeSubs: Subscription[],
+  subCourseIds: string[]
+): boolean {
+  // 1. Curso gratuito
   if (course.is_free) return true;
 
-  const hasPaid = purchases.some(p => p.course_id === course.id && (p.status === "paid" || p.status === "gifted"));
+  // 2. Compra directa
+  const hasPaid = purchases.some(
+    p => p.course_id === course.id && (p.status === "paid" || p.status === "gifted")
+  );
   if (hasPaid) return true;
 
-  if (course.included_in_subscription) {
-      const hasActiveSub = activeSubs.some(s => s.status === "active" && new Date(s.end_date) > new Date());
-      if (hasActiveSub) return true;
-  }
+  // 3. Suscripción Lifetime activa (acceso a TODOS los cursos)
+  const hasLifetime = activeSubs.some(
+    s => s.plan?.plan_type === "lifetime" && s.status === "active" && new Date(s.end_date) > new Date()
+  );
+  if (hasLifetime) return true;
+
+  // 4. Suscripción Standard activa que incluye este curso
+  if (subCourseIds.includes(course.id)) return true;
 
   return false;
 }
@@ -47,6 +69,18 @@ export default async function CoursePlayerPage({
     }
   );
 
+  // Admin client para consultas sin restricción de RLS
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    }
+  );
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     redirect(`/login?redirect=/mis-cursos/${slug}`);
@@ -61,16 +95,36 @@ export default async function CoursePlayerPage({
 
   if (!course) notFound();
 
-  // Fetch user access data
+  // Fetch user access data en paralelo
   const [purchasesRes, subsRes] = await Promise.all([
     supabase.from("purchases").select("*").eq("user_id", session.user.id),
-    supabase.from("subscriptions").select("*").eq("user_id", session.user.id)
+    supabase
+      .from("subscriptions")
+      .select("*, plan:subscription_plans(*)")
+      .eq("user_id", session.user.id)
+      .eq("status", "active"),
   ]);
 
+  const purchases = (purchasesRes.data as Purchase[]) || [];
+  const activeSubs = (subsRes.data as Subscription[]) || [];
+
+  // Obtener IDs de cursos incluidos en las suscripciones STANDARD activas (no expiradas)
+  const standardPlanIds = activeSubs
+    .filter(s => s.plan?.plan_type === "standard" && new Date(s.end_date) > new Date())
+    .map(s => s.plan_id);
+
+  let subCourseIds: string[] = [];
+  if (standardPlanIds.length > 0) {
+    const { data: planCourses } = await supabaseAdmin
+      .from("subscription_plan_courses")
+      .select("course_id")
+      .in("plan_id", standardPlanIds);
+
+    subCourseIds = (planCourses || []).map((pc: any) => pc.course_id);
+  }
+
   const hasAccess = canUserAccessCourse(
-    course as Course, 
-    (subsRes.data as Subscription[]) || [], 
-    (purchasesRes.data as Purchase[]) || []
+    course as Course, purchases, activeSubs, subCourseIds
   );
 
   if (!hasAccess) {

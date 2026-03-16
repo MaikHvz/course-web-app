@@ -75,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 flex flex-col
+        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out md:sticky md:top-0 h-[100dvh] md:translate-x-0 flex flex-col
         ${open ? "translate-x-0" : "-translate-x-full"}
       `}>
         <div className="p-6 border-b border-gray-800">

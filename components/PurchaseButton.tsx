@@ -26,10 +26,10 @@ export default function PurchaseButton({
   const handlePurchase = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    console.log("Starting purchase for course:", courseId);
+
     
     try {
-      const res = await fetch("/api/courses/purchase", {
+      const res = await fetch("/api/webpay/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId }),
@@ -37,7 +37,6 @@ export default function PurchaseButton({
 
       // Handle Unauthorized (Not Logged In)
       if (res.status === 401) {
-        console.log("User unauthorized, redirecting to login...");
         setIsLoading(false);
         const currentPath = window.location.pathname;
         router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
@@ -45,29 +44,43 @@ export default function PurchaseButton({
       }
 
       const data = await res.json();
-      console.log("Purchase API Response:", data);
+
 
       if (!res.ok) {
         throw new Error(data.error || "Error al procesar el pedido");
       }
 
-      setIsSuccess(true);
-      
-      // Delay to show success state before refreshing/redirecting
-      setTimeout(() => {
-        if (redirectTo) {
-          console.log("Redirecting to:", redirectTo);
-          window.location.href = redirectTo; // Force refresh on redirect
-        } else {
-          console.log("Forcing page reload");
-          window.location.reload(); // Hard reload to ensure server component re-runs access check
-        }
-      }, 1000);
+      // Si es un curso gratis
+      if (data.success && !data.url) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          if (redirectTo) {
+            window.location.href = redirectTo; 
+          } else {
+            window.location.reload();
+          }
+        }, 1000);
+        return;
+      }
+
+      // Flujo de pago Webpay Plus
+      if (data.url && data.token) {
+        const form = document.createElement("form");
+        form.action = data.url;
+        form.method = "POST";
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "token_ws";
+        input.value = data.token;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+      }
 
     } catch (error: any) {
       console.error("Purchase error detailed:", error);
-      alert(error.message || "Error inesperado al procesar la compra");
-      setIsLoading(false); // Only clear loading on error, on success it stays true while redirecting
+      alert(error.message || "Error inesperado al intentar inicializar el pago");
+      setIsLoading(false); 
     }
   };
 

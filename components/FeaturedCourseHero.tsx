@@ -36,7 +36,7 @@ export default function FeaturedCourseHero() {
       <div className="relative w-full h-[400px] md:h-[500px] rounded-[32px] overflow-hidden group shadow-2xl transition-all duration-500 hover:shadow-blue-900/20">
         {/* Background Image */}
         <Image
-          src={featuredCourse.thumbnail_url || "/course-placeholder.jpg"}
+          src={featuredCourse.thumbnail_url || "https://placehold.co/600x400/0f172a/white.png?text=Zona+Elite"}
           alt={featuredCourse.title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-105"

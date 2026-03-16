@@ -16,7 +16,7 @@ export default function AchievementsPage() {
     const fetchAchievementsData = async () => {
       setIsLoading(true);
       
-      // 1. Fetch all available achievements
+      // consume tods los logros
       const { data: allAch } = await supabase
         .from('achievements')
         .select('*')
@@ -24,7 +24,7 @@ export default function AchievementsPage() {
       
       if (allAch) setAchievements(allAch as Achievement[]);
 
-      // 2. Fetch User Unlocks
+      // consume los logros desbloqueados del usuario
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: userAch } = await supabase

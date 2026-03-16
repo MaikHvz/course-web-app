@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -91,6 +91,11 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const hasAccess = await checkAccess(course.id);
+  
+  if (hasAccess) {
+    redirect(`/mis-cursos/${course.slug}`);
+  }
+
   const hasVideo = !!course.bunny_video_id && !!BUNNY_LIBRARY_ID;
 
   return (
@@ -170,43 +175,32 @@ export default async function CourseDetailPage({
           <div className="lg:col-span-2 space-y-8">
 
             {/* Video Player / Lock Overlay */}
+            {/* Video Player (Locked State Only since users with access are redirected) */}
             {hasVideo ? (
-              hasAccess ? (
-                <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-gray-800 shadow-2xl">
-                  <iframe
-                    src={`https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${course.bunny_video_id}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`}
-                    title={course.title}
-                    loading="lazy"
-                    className="w-full h-full"
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-xl group">
+                {course.thumbnail_url && (
+                  <img
+                    src={course.thumbnail_url}
+                    alt={course.title}
+                    className="w-full h-full object-cover blur-sm opacity-50"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gray-950/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400">
+                    <IconLock size={32} />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Contenido Exclusivo</h3>
+                  <p className="text-gray-300 text-sm max-w-md mb-6">
+                    Este video es exclusivo para alumnos. Obtén el curso para desbloquear el acceso inmediato.
+                  </p>
+                  <PurchaseButton 
+                    courseId={course.id}
+                    isFree={course.is_free}
+                    redirectTo={`/mis-cursos/${course.slug}`}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-600/20"
                   />
                 </div>
-              ) : (
-                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-xl group">
-                  {course.thumbnail_url && (
-                    <img
-                      src={course.thumbnail_url}
-                      alt={course.title}
-                      className="w-full h-full object-cover blur-sm opacity-50"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gray-950/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400">
-                      <IconLock size={32} />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Contenido Exclusivo</h3>
-                    <p className="text-gray-300 text-sm max-w-md mb-6">
-                      Este video es exclusivo para alumnos. Obtén el curso para desbloquear el acceso inmediato.
-                    </p>
-                    <PurchaseButton 
-                      courseId={course.id}
-                      isFree={course.is_free}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-600/20"
-                    />
-                  </div>
-                </div>
-              )
+              </div>
             ) : course.thumbnail_url ? (
               <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-xl">
                 <img

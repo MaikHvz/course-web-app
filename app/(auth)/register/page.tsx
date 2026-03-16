@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "";
@@ -162,5 +162,13 @@ export default function RegisterPage() {
         </Link>
       </p>
     </>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-gray-400 py-10">Cargando...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

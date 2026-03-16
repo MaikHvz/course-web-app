@@ -11,18 +11,24 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 export default function AdminSubscriptionsPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [metrics, setMetrics] = useState({ activeSubscribers: 0, mrr: 0 });
+  const [showPricingUi, setShowPricingUi] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTogglingGlobal, setIsTogglingGlobal] = useState(false);
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
       setIsLoading(true);
       
-      // 1. Fetch Plans
-      const { data: plansData } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .order('price', { ascending: true });
+      // 1. Fetch Plans and Settings
+      const [{ data: plansData }, { data: settingsData }] = await Promise.all([
+        supabase.from('subscription_plans').select('*').order('price', { ascending: true }),
+        supabase.from('platform_settings').select('value').eq('id', 'show_pricing_section').single()
+      ]);
+      
+      if (settingsData) {
+        setShowPricingUi(settingsData.value === 'true' || settingsData.value === true);
+      }
       
       if (plansData) {
         setPlans(plansData as SubscriptionPlan[]);
@@ -49,19 +55,72 @@ export default function AdminSubscriptionsPage() {
     fetchSubscriptionData();
   }, [supabase]);
 
+  const handleToggleGlobalSubmit = async (currentState: boolean) => {
+    setIsTogglingGlobal(true);
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .upsert({ id: 'show_pricing_section', value: !currentState });
+      
+      if (error) throw error;
+      setShowPricingUi(!currentState);
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar la visibilidad pública.");
+    } finally {
+      setIsTogglingGlobal(false);
+    }
+  };
+
+  const handleToggleActive = async (id: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('subscription_plans')
+        .update({ is_active: !currentState })
+        .eq('id', id);
+      
+      if (error) throw error;
+      setPlans(plans.map(p => p.id === id ? { ...p, is_active: !currentState } : p));
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar el estado");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este plan?")) return;
+    try {
+      const { error } = await supabase
+        .from('subscription_plans')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      setPlans(plans.filter(p => p.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar el plan. Puede que haya suscripciones activas vinculadas.");
+    }
+  };
+
   const columns: Column<SubscriptionPlan>[] = [
     { 
       key: "name", 
       header: "Plan",
       render: (plan) => (
-        <span className="font-bold text-white">{plan.name}</span>
+        <span className="font-bold text-white flex flex-col">
+          {plan.name}
+          <span className="text-xs text-gray-400 font-normal">
+            {plan.plan_type === 'lifetime' ? 'Vitalicio' : 'Estándar'}
+          </span>
+        </span>
       )
     },
     { 
       key: "price", 
       header: "Precio",
       render: (plan) => (
-        <span className="font-medium text-emerald-400">${plan.price}</span>
+        <span className="font-medium text-emerald-400">${plan.price.toLocaleString()}</span>
       )
     },
     { 
@@ -69,7 +128,9 @@ export default function AdminSubscriptionsPage() {
       header: "Duración",
       render: (plan) => (
         <span className="text-gray-300">
-          {plan.duration_days} días {plan.duration_days === 30 ? "(Mensual)" : plan.duration_days === 365 ? "(Anual)" : ""}
+          {plan.plan_type === 'lifetime' ? '∞ De por vida' : 
+            `${plan.duration_days} días ${plan.duration_days === 30 ? "(Mensual)" : plan.duration_days === 90 ? "(Trimestral)" : plan.duration_days === 365 ? "(Anual)" : ""}`
+          }
         </span>
       )
     },
@@ -87,13 +148,13 @@ export default function AdminSubscriptionsPage() {
       header: "Acciones",
       render: (plan) => (
         <div className="flex items-center gap-2">
-          <button className="p-2 bg-gray-800 hover:bg-gray-700 text-blue-400 rounded transition-colors" title="Editar">
+          <Link href={`/admin/suscripciones/${plan.id}/editar`} className="p-2 bg-gray-800 hover:bg-gray-700 text-blue-400 rounded transition-colors" title="Editar">
             <IconEdit size={16} />
-          </button>
-          <button className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded transition-colors" title={plan.is_active ? "Desactivar" : "Activar"}>
+          </Link>
+          <button onClick={() => handleToggleActive(plan.id, plan.is_active)} className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded transition-colors" title={plan.is_active ? "Desactivar" : "Activar"}>
             <IconPower size={16} />
           </button>
-          <button className="p-2 bg-red-900/20 hover:bg-red-900/50 text-red-500 rounded transition-colors" title="Eliminar">
+          <button onClick={() => handleDelete(plan.id)} className="p-2 bg-red-900/20 hover:bg-red-900/50 text-red-500 rounded transition-colors" title="Eliminar">
             <IconTrash size={16} />
           </button>
         </div>
@@ -109,12 +170,25 @@ export default function AdminSubscriptionsPage() {
           <p className="text-gray-400">Administra los planes y precios disponibles para tus alumnos.</p>
         </div>
         
-        <button 
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-colors shrink-0"
-        >
-          <IconPlus size={20} />
-          <span>Nuevo Plan</span>
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center gap-3 bg-gray-900 border border-gray-800 p-2 rounded-xl">
+            <span className="text-sm font-medium text-gray-400 pl-2">Mostrar en Portada:</span>
+            <button
+              onClick={() => handleToggleGlobalSubmit(showPricingUi)}
+              disabled={isTogglingGlobal}
+              className={`relative w-12 h-6 rounded-full transition-colors ${showPricingUi ? 'bg-blue-600' : 'bg-gray-700'}`}
+            >
+              <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${showPricingUi ? 'translate-x-6' : ''}`} />
+            </button>
+          </div>
+          <Link 
+            href="/admin/suscripciones/nuevo"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-colors shrink-0"
+          >
+            <IconPlus size={20} />
+            <span>Nuevo Plan</span>
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (

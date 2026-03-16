@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
-import { IconCheck, IconLoader2 } from "@tabler/icons-react";
+import { IconCheck, IconLoader2, IconFileDownload } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { Profile, Subscription, Purchase } from "@/lib/types";
+import { Profile, Subscription } from "@/lib/types";
 
 export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -12,21 +12,20 @@ export default function ProfilePage() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [newName, setNewName] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     const fetchUserData = async () => {
       setIsLoading(true);
-      
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // 1. Fetch Profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -38,7 +37,6 @@ export default function ProfilePage() {
           setNewName(profile.name || "");
         }
 
-        // 2. Fetch Active Subscriptions
         const { data: subs } = await supabase
           .from('subscriptions')
           .select('*, plan:subscription_plans(*)')
@@ -47,14 +45,13 @@ export default function ProfilePage() {
         
         if (subs) setSubscriptions(subs as any[]);
 
-        // 3. Fetch Purchases
         const { data: buys } = await supabase
           .from('purchases')
-          .select('*, course:courses(title)')
+          .select('*, course:courses(title), plan:subscription_plans(name)')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
         
-        if (buys) setPurchases(buys as any[]);
+        if (buys) setPurchases(buys);
       }
       
       setIsLoading(false);
@@ -63,12 +60,28 @@ export default function ProfilePage() {
     fetchUserData();
   }, [supabase]);
 
+  const handleDownloadBoleta = async (purchaseId: string) => {
+    setDownloadingId(purchaseId);
+    try {
+      const res = await fetch(`/api/invoices/${purchaseId}`);
+      if (!res.ok) throw new Error("Error al generar boleta");
+      const html = await res.text();
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      }
+    } catch (err: any) {
+      alert("No se pudo generar la boleta: " + err.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdatingPassword(true);
-    
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    
     if (error) {
       alert("Error al actualizar contraseña: " + error.message);
     } else {
@@ -82,12 +95,7 @@ export default function ProfilePage() {
   const handleNameUpdate = async () => {
     if (!newName.trim() || !userProfile) return;
     setIsUpdatingName(true);
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ name: newName })
-      .eq('id', userProfile.id);
-    
+    const { error } = await supabase.from('profiles').update({ name: newName }).eq('id', userProfile.id);
     if (error) {
       alert("Error al actualizar nombre: " + error.message);
     } else {
@@ -190,25 +198,23 @@ export default function ProfilePage() {
                 
                 <Badge className="bg-blue-600 mb-4">{sub.plan?.name}</Badge>
                 <h2 className="text-2xl font-bold text-white mb-2">{sub.plan?.name}</h2>
-                <p className="text-blue-200 mb-6 text-sm">Próxima renovación: {new Date(sub.end_date).toLocaleDateString()}</p>
+                <p className="text-blue-200 mb-6 text-sm">
+                  {sub.plan?.plan_type === "lifetime"
+                    ? "✨ Acceso vitalicio — Sin fecha de expiración"
+                    : `Expira: ${new Date(sub.end_date).toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" })}`
+                  }
+                </p>
                 
                 <div className="space-y-3 mb-8">
                   <div className="flex items-center gap-2 text-sm text-gray-300">
                     <IconCheck size={16} className="text-blue-400" /> Acceso completo a la plataforma
                   </div>
                 </div>
-
-                <button className="bg-gray-900 text-white font-medium py-2 px-4 rounded-lg border border-gray-700 hover:bg-gray-800 transition-colors text-sm w-full sm:w-auto text-center">
-                  Gestionar Suscripción
-                </button>
               </section>
             ))
           ) : (
             <section className="bg-gray-900 border border-gray-800 border-dashed rounded-2xl p-8 text-center">
               <p className="text-gray-500 mb-4">No tienes una suscripción activa.</p>
-              <button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">
-                Ver Planes
-              </button>
             </section>
           )}
 
@@ -221,25 +227,45 @@ export default function ProfilePage() {
               <table className="w-full text-left text-sm text-gray-400">
                 <thead className="bg-gray-950/50 text-xs uppercase font-semibold text-gray-500">
                   <tr>
-                    <th className="px-6 py-3">Concepto</th>
-                    <th className="px-6 py-3">Fecha</th>
-                    <th className="px-6 py-3 text-right">Monto</th>
+                    <th className="px-5 py-3">Concepto</th>
+                    <th className="px-4 py-3">Fecha</th>
+                    <th className="px-4 py-3 text-right">Monto</th>
+                    <th className="px-4 py-3 text-center">Boleta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {purchases.length > 0 ? (
                     purchases.map(buy => (
                       <tr key={buy.id} className="hover:bg-gray-800/50">
-                        <td className="px-6 py-4 font-medium text-gray-300">
-                          {buy.course?.title || "Compra de Curso"}
+                        <td className="px-5 py-4 font-medium text-gray-300 max-w-[150px] truncate">
+                          {buy.course?.title || buy.plan?.name || "Compra"}
                         </td>
-                        <td className="px-6 py-4">{new Date(buy.created_at).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-right">${buy.amount_paid}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {new Date(buy.created_at).toLocaleDateString("es-CL")}
+                        </td>
+                        <td className="px-4 py-4 text-right text-emerald-400 font-bold whitespace-nowrap">
+                          ${Number(buy.amount_paid).toLocaleString("es-CL")}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {buy.status === "paid" && (
+                            <button
+                              onClick={() => handleDownloadBoleta(buy.id)}
+                              disabled={downloadingId === buy.id}
+                              title="Ver / Descargar boleta"
+                              className="inline-flex items-center justify-center w-8 h-8 bg-gray-800 hover:bg-blue-600/30 border border-gray-700 hover:border-blue-500/50 text-gray-400 hover:text-blue-400 rounded-lg transition-all disabled:opacity-50"
+                            >
+                              {downloadingId === buy.id
+                                ? <IconLoader2 size={15} className="animate-spin" />
+                                : <IconFileDownload size={15} />
+                              }
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="px-6 py-8 text-center text-gray-600 italic">
+                      <td colSpan={4} className="px-6 py-8 text-center text-gray-600 italic">
                         No has realizado compras todavía.
                       </td>
                     </tr>

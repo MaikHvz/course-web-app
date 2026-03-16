@@ -3,16 +3,18 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ProgressBar from "@/components/ProgressBar";
-import { IconPlayerPlay, IconCertificate, IconLoader2, IconAlertCircle } from "@tabler/icons-react";
+import { IconPlayerPlay, IconCertificate, IconLoader2, IconAlertCircle, IconCrown } from "@tabler/icons-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Badge } from "@/components/ui/Badge";
 
 export default function MyCoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessType, setAccessType] = useState<"none" | "purchases" | "standard" | "lifetime">("none");
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
+    const fetchMyCourses = async () => {
       setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -21,25 +23,95 @@ export default function MyCoursesPage() {
         return;
       }
 
-      // Fetch purchased courses
-      const { data, error } = await supabase
+      const userId = session.user.id;
+
+      // 1. Fetch cursos comprados directamente
+      const { data: purchasedData } = await supabase
         .from('purchases')
-        .select(`
-          course_id,
-          courses (*)
-        `)
-        .eq('user_id', session.user.id)
-        .eq('status', 'paid');
+        .select('course_id, courses (*)')
+        .eq('user_id', userId)
+        .eq('status', 'paid')
+        .not('course_id', 'is', null);
       
-      if (!error && data) {
-        // Flatten the relationship
-        const flattened = data.map((p: any) => p.courses).filter(Boolean);
-        setCourses(flattened);
+      const purchasedCourses = (purchasedData || [])
+        .map((p: any) => ({ ...p.courses, _accessType: 'purchased' }))
+        .filter(Boolean);
+
+      // 2. Fetch suscripciones activas con sus planes
+      const { data: activeSubs } = await supabase
+        .from('subscriptions')
+        .select('*, plan:subscription_plans(*)')
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+      const now = new Date();
+      const validSubs = (activeSubs || []).filter(
+        (s: any) => new Date(s.end_date) > now
+      );
+
+      // Check si tiene plan lifetime
+      const hasLifetime = validSubs.some(
+        (s: any) => s.plan?.plan_type === 'lifetime'
+      );
+
+      let subscriptionCourses: any[] = [];
+
+      if (hasLifetime) {
+        // 3a. Lifetime = Todos los cursos publicados
+        setAccessType("lifetime");
+        const { data: allCourses } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true });
+
+        subscriptionCourses = (allCourses || []).map((c: any) => ({
+          ...c,
+          _accessType: 'lifetime'
+        }));
+      } else if (validSubs.length > 0) {
+        // 3b. Standard = Solo cursos del plan
+        setAccessType("standard");
+        const planIds = validSubs.map((s: any) => s.plan_id);
+
+        const { data: planCourseLinks } = await supabase
+          .from('subscription_plan_courses')
+          .select('course_id')
+          .in('plan_id', planIds);
+
+        const courseIds = (planCourseLinks || []).map((pc: any) => pc.course_id);
+
+        if (courseIds.length > 0) {
+          const { data: planCourses } = await supabase
+            .from('courses')
+            .select('*')
+            .in('id', courseIds)
+            .eq('is_published', true);
+
+          subscriptionCourses = (planCourses || []).map((c: any) => ({
+            ...c,
+            _accessType: 'subscription'
+          }));
+        }
       }
+
+      // 4. Unir y deduplicar (compras directas tienen prioridad)
+      const purchasedIds = new Set(purchasedCourses.map((c: any) => c.id));
+      const uniqueSubCourses = subscriptionCourses.filter(
+        (c: any) => !purchasedIds.has(c.id)
+      );
+
+      const allMyCourses = [...purchasedCourses, ...uniqueSubCourses];
+      setCourses(allMyCourses);
+
+      if (allMyCourses.length > 0 && accessType === "none") {
+        setAccessType("purchases");
+      }
+
       setIsLoading(false);
     };
 
-    fetchEnrolledCourses();
+    fetchMyCourses();
   }, [supabase]);
 
   return (
@@ -57,17 +129,35 @@ export default function MyCoursesPage() {
           </div>
         ) : courses.length > 0 ? (
           courses.map((course) => {
-            const progress: number = 0; // In a real app, fetch from course_progress table
+            const progress: number = 0;
 
             return (
               <div key={course.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col sm:flex-row transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-black/50">
                 <div className="relative w-full sm:w-48 aspect-video sm:aspect-square shrink-0">
                   <Image 
-                    src={course.thumbnail_url || '/placeholder-course.jpg'} 
+                    src={course.thumbnail_url || "https://placehold.co/600x400/0f172a/white.png?text=Zona+Elite"} 
                     alt={course.title} 
                     fill 
                     className="object-cover"
                   />
+                  {/* Badge de tipo de acceso */}
+                  <div className="absolute top-2 left-2">
+                    {course._accessType === 'purchased' && (
+                      <Badge className="bg-emerald-600 text-white text-[10px]">
+                        Comprado
+                      </Badge>
+                    )}
+                    {course._accessType === 'lifetime' && (
+                      <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] flex items-center gap-1">
+                        <IconCrown size={10} /> Suscripción VIP
+                      </Badge>
+                    )}
+                    {course._accessType === 'subscription' && (
+                      <Badge className="bg-blue-600 text-white text-[10px]">
+                        Suscripción
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="p-5 flex flex-col justify-between flex-1">

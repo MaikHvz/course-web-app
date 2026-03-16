@@ -2,22 +2,37 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { IconMail } from "@tabler/icons-react";
+import { IconMail, IconAlertCircle } from "@tabler/icons-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createSupabaseBrowserClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Simulate sending email
-    setTimeout(() => {
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+
+      if (resetError) {
+        throw resetError;
+      }
+
       setIsSubmitted(true);
+    } catch (err: any) {
+      console.error("Error resetting password:", err);
+      setError(err.message || "Ocurrió un error al intentar enviar el correo.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   if (isSubmitted) {
@@ -32,7 +47,7 @@ export default function ForgotPasswordPage() {
         </p>
         <Link 
           href="/login" 
-          className="w-full inline-block bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-lg border border-gray-700 transition-colors"
+          className="w-full inline-block bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-lg border border-gray-700 transition-colors text-center"
         >
           Volver a iniciar sesión
         </Link>
@@ -44,10 +59,17 @@ export default function ForgotPasswordPage() {
     <>
       <h2 className="text-2xl font-bold text-white mb-2 text-center">Recuperar contraseña</h2>
       <p className="text-gray-400 text-center text-sm mb-8">
-        Ingresá tu email y te enviaremos un enlace para restablecerla.
+        Ingresá tu email y te enviamos un enlace para restablecerla.
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+            <IconAlertCircle size={18} />
+            {error}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
           <input 

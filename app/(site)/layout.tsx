@@ -12,7 +12,8 @@ import {
   IconChevronDown, 
   IconLogout, 
   IconVideo, 
-  IconShieldLock 
+  IconShieldLock,
+  IconInfoCircle
 } from "@tabler/icons-react";
 import PromoBanner from "../../components/PromoBanner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -85,6 +86,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const menuItems = [
     { icon: <IconHome size={24} />, label: "Inicio", href: "/" },
     { icon: <IconUser size={24} />, label: "Cursos", href: "/cursos" },
+    { icon: <IconInfoCircle size={24} />, label: "Sobre Nosotros", href: "/sobre-nosotros" },
     { icon: <IconSettings size={24} />, label: "Ajustes", href: "/settings" },
   ];
 

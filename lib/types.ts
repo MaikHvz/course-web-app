@@ -112,10 +112,12 @@ export interface SubscriptionPlan {
     name: string;
     description: string;
     price: number;
-    duration_days: number;
+    duration_days: number | null;
     is_active: boolean;
     features: string[]; // UI extra
+    plan_type: 'standard' | 'lifetime'; // Nuevo
     created_at: string;
+    courses?: Course[]; // Para la relación puente UI
 }
 
 export interface Subscription {

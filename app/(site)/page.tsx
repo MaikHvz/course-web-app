@@ -5,6 +5,7 @@ import TypingText from "@/components/TypingText";
 import BrandsMarquee from "@/components/BrandsMarquee";
 import FeaturedCourses from "@/components/FeaturedCourses";
 import FeaturedCourseHero from "@/components/FeaturedCourseHero";
+import PricingCards from "@/components/PricingCards";
 import { IconArrowRight } from "@tabler/icons-react";
 
 export default function Home() {
@@ -142,6 +143,7 @@ export default function Home() {
 
       <FeaturedCourses />
 
+      <PricingCards />
     </div>
   );
 }
