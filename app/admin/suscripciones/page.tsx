@@ -36,8 +36,8 @@ export default function AdminSubscriptionsPage() {
       
       if (activeSubs && plansData) {
         const count = activeSubs.length;
-        const totalMrr = activeSubs.reduce((acc, sub) => {
-          const plan = plansData.find(p => p.id === sub.plan_id);
+        const totalMrr = activeSubs.reduce((acc: any, sub: any) => {
+          const plan = plansData.find((p: any) => p.id === sub.plan_id);
           return acc + (plan?.price || 0);
         }, 0);
         setMetrics({ activeSubscribers: count, mrr: totalMrr });

@@ -26,7 +26,7 @@ export default function AdminPathsPage() {
         .order('created_at', { ascending: false });
       
       if (!error && data) {
-        setPaths(data.map(p => ({
+        setPaths(data.map((p: any) => ({
           ...p,
           courses_count: p.learning_path_courses?.[0]?.count || 0,
           enrolled: 0 // Placeholder for now or could be calculated if we had registrations for paths

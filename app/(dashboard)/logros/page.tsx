@@ -33,7 +33,7 @@ export default function AchievementsPage() {
           .eq('user_id', session.user.id);
         
         if (userAch) {
-          setUnlockedIds(userAch.map(ua => ua.achievement_id));
+          setUnlockedIds((userAch as any[]).map((ua: any) => ua.achievement_id));
         }
       }
       

@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
         supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active')
       ]);
 
-      const totalRevenue = purchaseData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+      const totalRevenue = (purchaseData as any[])?.reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0) || 0;
 
       setStats({
         revenue: totalRevenue,
@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
         .limit(5);
       
       if (activity) {
-        setRecentActivity(activity.map(a => ({
+        setRecentActivity((activity as any[]).map((a: any) => ({
           id: a.id,
           user: (a.profiles as any)?.name || 'Anónimo',
           action: `Compró ${(a.courses as any)?.title || 'Curso'}`,
